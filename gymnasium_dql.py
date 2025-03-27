@@ -1,3 +1,4 @@
+import sys
 import gymnasium as gym
 import numpy as np
 import matplotlib.pyplot as plt
@@ -212,7 +213,7 @@ class FrozenLakeDQL():
         print('Policy (trained):')
         self.print_dqn(policy_dqn)
 
-        for i in range(episodes):
+        for _ in range(episodes):
             state = env.reset()[0] # Initialize to state 0
             terminated = False
             truncated = False
@@ -236,7 +237,15 @@ class FrozenLakeDQL():
 
 # Main
 if __name__ == '__main__':
-    frozen_lake_dql = FrozenLakeDQL()
-    is_slippery = False
-    frozen_lake_dql.train(episodes=1000, is_slippery=is_slippery)
-    frozen_lake_dql.test(episodes=4, is_slippery=is_slippery)
+    if len(sys.argv) > 1:
+        args = sys.argv[1:]
+
+        if args[0] == 'frozen_lake':
+            frozen_lake_dql = FrozenLakeDQL()
+            is_slippery = True
+            frozen_lake_dql.train(episodes=10000, is_slippery=is_slippery)
+            frozen_lake_dql.test(episodes=4, is_slippery=is_slippery)
+        elif args[0] == 'mountain_car':
+            mountain_car_dql = MountainCarDQL()
+            mountain_car_dql.train(episodes=10000)
+            mountain_car_dql.test(episodes=4)

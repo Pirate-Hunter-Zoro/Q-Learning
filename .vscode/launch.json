@@ -1,0 +1,12 @@
+{
+  "configurations": [
+    {
+      "type": "debugpy",
+      "request": "launch",
+      "name": "Run Q-Learning",
+      "program": "${workspaceFolder}/gymnasium_dql.py",
+      "args": ["frozen_lake"],
+      "console": "integratedTerminal"
+    }
+  ],
+}
