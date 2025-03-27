@@ -1,59 +1,18 @@
-import sys
+from gymnasium_dqn import DQL, DQN, ReplayMemory
 import gymnasium as gym
-import numpy as np
-import matplotlib.pyplot as plt
-from collections import deque
-import random
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
+import numpy as np
+import random
+import matplotlib.pyplot as plt
 
-
-# Define model - just a feedforward neural network
-class DQN(nn.Module):
-    def __init__(self, in_states, h1_nodes, out_actions):
+class FrozenLakeDQL(DQL):
+    def __init__(self, is_slippery=False):
         super().__init__()
+        self.is_slippery = is_slippery
 
-        # Define network layers
-        self.fc1 = nn.Linear(in_states, h1_nodes) # first fully connected layer
-        self.out = nn.Linear(h1_nodes, out_actions) # output layer
-                
-    def forward(self, x):
-        x = F.relu(self.fc1(x)) # apply rectified linear unit (ReLU) activation function
-        x = self.out(x) # no activation function on the output layer
-        return x
-    
-
-# Define replay buffer
-class ReplayMemory():
-    def __init__(self, maxlen):
-        self.memory = deque([], maxlen=maxlen)
-
-    def append(self, transition):
-        self.memory.append(transition)
-
-    def sample(self, sample_size):
-        return random.sample(self.memory, sample_size)
-    
-
-# Frozen Lake Deep Q-Learning class
-class FrozenLakeDQL():
-    # Adjustable hyperparameters
-    learning_rate_a = 0.001 # learning rate (alpha)
-    learning_rate_b = 0.9 # discount rate (gamma)
-    network_sync_rate = 10 # number of steps the agent takes before syncing the policy and target network
-    replay_memory_size = 10000 # size of the replay memory
-    minibatch_size = 32 # size of the training data set sampled from the replay memory
-
-    # Neural Network
-    loss_fn = nn.MSELoss() # loss function - Mean Squared Error but could be swapped with something else
-    optimizer = None # optimizer - to be initialized later
-
-    ACTIONS = ['L', 'D', 'R', 'U'] # action space (left, down, right, up)
-
-    # Train the FrozenLake environment
-    def train(self, episodes, render=False, is_slippery=False):
+    def train(self, episodes, render=False):
         # Create FrozenLake instance
+        is_slippery = self.is_slippery
         env = gym.make('FrozenLake-v1', map_name="4x4", is_slippery=is_slippery, render_mode='human' if render else None)
         num_states = env.observation_space.n
         num_actions = env.action_space.n
@@ -154,53 +113,9 @@ class FrozenLakeDQL():
         # Save plots
         plt.savefig('frozen_lake_dqn.png')
 
-    def state_to_dqn_input(self, state, num_states):
-        input_tensor = torch.zeros(num_states)
-        # In this case the state just correponds with a number, so we set the value at that index to 1
-        input_tensor[state] = 1
-        return input_tensor
-    
-    def optimize(self, mini_batch, policy_dqn, target_dqn):
-        # Get the number of input nodes - this is the number of states
-        num_states = policy_dqn.fc1.in_features
-        
-        current_q_list = []
-        target_q_list = []
-
-        for state, action, new_state, reward, terminated in mini_batch:
-            if terminated:
-                # Agent either reached goal or fell into hole (in which case reward is 0)
-                # When in terminated state, target q-value is just the reward
-                target = torch.FloatTensor([reward])
-            else:
-                # Calculate target q value
-                with torch.no_grad():
-                    # This is the immediate reward plus the discounted future reward for the next state (the best we could do at said next state)
-                    target = torch.FloatTensor(
-                        reward + self.learning_rate_b * target_dqn(self.state_to_dqn_input(new_state, num_states)).max()
-                    )
-            
-            # Get current set of Q-values
-            current_q = policy_dqn(self.state_to_dqn_input(state, num_states))
-            current_q_list.append(current_q)
-
-            # Get the target set of Q-values
-            target_q = target_dqn(self.state_to_dqn_input(state, num_states))
-            # Update the Q-value for the action taken
-            target_q[action] = target
-            target_q_list.append(target_q)
-
-        # Now we know what the Q-values "should" be, and what they are
-        loss = self.loss_fn(torch.stack(current_q_list), torch.stack(target_q_list))
-
-        # Now we take a step towards optimization
-        self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()
-
-    # Run frozen lake environment with trained policy
-    def test(self, episodes, is_slippery=False):
+    def test(self, episodes):
         # Create FrozenLake instance
+        is_slippery = self.is_slippery
         env = gym.make('FrozenLake-v1', map_name="4x4", is_slippery=is_slippery, render_mode='human')
         num_states = env.observation_space.n
         num_actions = env.action_space.n
@@ -228,24 +143,3 @@ class FrozenLakeDQL():
                 state = new_state
         
         env.close()
-
-    def print_dqn(self, dqn):
-        for name, param in dqn.named_parameters():
-            print(name, param.data)
-        print()
-
-
-# Main
-if __name__ == '__main__':
-    if len(sys.argv) > 1:
-        args = sys.argv[1:]
-
-        if args[0] == 'frozen_lake':
-            frozen_lake_dql = FrozenLakeDQL()
-            is_slippery = True
-            frozen_lake_dql.train(episodes=10000, is_slippery=is_slippery)
-            frozen_lake_dql.test(episodes=4, is_slippery=is_slippery)
-        elif args[0] == 'mountain_car':
-            mountain_car_dql = MountainCarDQL()
-            mountain_car_dql.train(episodes=10000)
-            mountain_car_dql.test(episodes=4)
