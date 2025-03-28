@@ -32,30 +32,31 @@ class ReplayMemory():
     def sample(self, sample_size):
         return random.sample(self.memory, sample_size)
     
+    def __len__(self):
+        return len(self.memory)
+    
 
 # Frozen Lake Deep Q-Learning class
 class DQL(ABC):
-    # Adjustable hyperparameters
-    learning_rate_a = 0.001 # learning rate (alpha)
-    learning_rate_b = 0.9 # discount rate (gamma)
-    network_sync_rate = 10 # number of steps the agent takes before syncing the policy and target network
-    replay_memory_size = 10000 # size of the replay memory
-    minibatch_size = 32 # size of the training data set sampled from the replay memory
-
     # Neural Network
     loss_fn = nn.MSELoss() # loss function - Mean Squared Error but could be swapped with something else
     optimizer = None # optimizer - to be initialized later
 
-    def state_to_dqn_input(self, state, num_states):
-        input_tensor = torch.zeros(num_states)
-        # In this case the state just correponds with a number, so we set the value at that index to 1
-        input_tensor[state] = 1
-        return input_tensor
+    def __init__(self, learning_rate_a, learning_rate_b, replay_memory_size, minibatch_size, network_sync_rate):
+        self.learning_rate_a = learning_rate_a
+        self.learning_rate_b = learning_rate_b
+        self.replay_memory_size = replay_memory_size
+        self.replay_memory = ReplayMemory(replay_memory_size) # replay memory - stores transitions
+        self.minibatch_size = minibatch_size # size of the training data set sampled from the replay memory
+        self.network_sync_rate = network_sync_rate # number of steps the agent takes before syncing the policy and target network
+        self.epsilon = 1 # exploration rate - at first we take 100% random actions
+        self.policy_dqn = None
+        self.target_dqn = None
+
+    def state_to_dqn_input(self, state):
+        pass
     
-    def optimize(self, mini_batch, policy_dqn, target_dqn):
-        # Get the number of input nodes - this is the number of states
-        num_states = policy_dqn.fc1.in_features
-        
+    def optimize(self, mini_batch):
         current_q_list = []
         target_q_list = []
 
@@ -69,15 +70,15 @@ class DQL(ABC):
                 with torch.no_grad():
                     # This is the immediate reward plus the discounted future reward for the next state (the best we could do at said next state)
                     target = torch.FloatTensor(
-                        reward + self.learning_rate_b * target_dqn(self.state_to_dqn_input(new_state, num_states)).max()
+                        reward + self.learning_rate_b * self.target_dqn(self.state_to_dqn_input(new_state)).max()
                     )
             
             # Get current set of Q-values
-            current_q = policy_dqn(self.state_to_dqn_input(state, num_states))
+            current_q = self.policy_dqn(self.state_to_dqn_input(state))
             current_q_list.append(current_q)
 
             # Get the target set of Q-values
-            target_q = target_dqn(self.state_to_dqn_input(state, num_states))
+            target_q = self.target_dqn(self.state_to_dqn_input(state))
             # Update the Q-value for the action taken
             target_q[action] = target
             target_q_list.append(target_q)

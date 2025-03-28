@@ -3,9 +3,17 @@
     {
       "type": "debugpy",
       "request": "launch",
-      "name": "Run Q-Learning",
+      "name": "Run Frozen Lake Q-Learning",
       "program": "${workspaceFolder}/run_dql.py",
       "args": ["frozen_lake"],
+      "console": "integratedTerminal"
+    },
+    {
+      "type": "debugpy",
+      "request": "launch",
+      "name": "Run Mountain Car Q-Learning",
+      "program": "${workspaceFolder}/run_dql.py",
+      "args": ["mountain_car"],
       "console": "integratedTerminal"
     }
   ],

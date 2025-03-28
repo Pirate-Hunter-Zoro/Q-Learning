@@ -6,32 +6,40 @@ import random
 import matplotlib.pyplot as plt
 
 class FrozenLakeDQL(DQL):
-    def __init__(self, is_slippery=False):
-        super().__init__()
+    # Hyperparameters
+    def __init__(self, is_slippery=False, learning_rate_a=0.001, learning_rate_b=0.9, replay_memory_size=10000, minibatch_size=32, network_sync_rate=10):
+        super(FrozenLakeDQL, self).__init__(learning_rate_a, learning_rate_b, replay_memory_size, minibatch_size, network_sync_rate)
         self.is_slippery = is_slippery
+        self.num_states = None
+
+    def state_to_dqn_input(self, state):
+        input_tensor = torch.zeros(self.num_states)
+        # In this case the state just correponds with a number, so we set the value at that index to 1
+        input_tensor[state] = 1
+        return input_tensor
 
     def train(self, episodes, render=False):
         # Create FrozenLake instance
         is_slippery = self.is_slippery
         env = gym.make('FrozenLake-v1', map_name="4x4", is_slippery=is_slippery, render_mode='human' if render else None)
-        num_states = env.observation_space.n
+        self.num_states = env.observation_space.n
         num_actions = env.action_space.n
 
-        epsilon = 1 # exploration rate - at forst we take 100% random actions
+        epsilon = 1 # exploration rate - at first we take 100% random actions
         memory = ReplayMemory(self.replay_memory_size)
 
         # Create policy and target network - with the number of nodes in the hidden layer adjustable
-        policy_dqn = DQN(in_states=num_states, h1_nodes=num_states, out_actions=num_actions)
-        target_dqn = DQN(in_states=num_states, h1_nodes=num_states, out_actions=num_actions)
+        self.policy_dqn = DQN(in_states=self.num_states, h1_nodes=self.num_states, out_actions=num_actions)
+        self.target_dqn = DQN(in_states=self.num_states, h1_nodes=self.num_states, out_actions=num_actions)
 
         # Make the target and policy networks the same (copy weights/biases from one to the other)
-        target_dqn.load_state_dict(policy_dqn.state_dict())
+        self.target_dqn.load_state_dict(self.policy_dqn.state_dict())
 
         print('Policy (random, before training):')
-        self.print_dqn(policy_dqn)
+        self.print_dqn(self.policy_dqn)
 
         # Policy network optimizer - Adam optimizer can be swapped with something else
-        self.optimizer = torch.optim.Adam(policy_dqn.parameters(), lr=self.learning_rate_a)
+        self.optimizer = torch.optim.Adam(self.policy_dqn.parameters(), lr=self.learning_rate_a)
 
         # List to keep track of rewards per episode - initially zeros
         rewards_per_episode = np.zeros(episodes)
@@ -58,7 +66,7 @@ class FrozenLakeDQL(DQL):
                     # act greedily - but this is a prediction so no training gradient calculations
                     with torch.no_grad():
                         # turn the state into a vector, and every output value corresponds to the Q-value of the action
-                        q_values = policy_dqn(self.state_to_dqn_input(state, num_states))
+                        q_values = self.policy_dqn(self.state_to_dqn_input(state))
                         action = q_values.argmax().item()
 
                 # Execute action
@@ -80,7 +88,7 @@ class FrozenLakeDQL(DQL):
             # Check if enough experience has been collected and if at least 1 reward has been collected (otherwise we wouldn't care to memorize the sequence of actions and results because they led nowhere helpful)
             if len(memory.memory) > self.minibatch_size and np.sum(rewards_per_episode) > 0:
                 mini_batch = memory.sample(self.minibatch_size)
-                self.optimize(mini_batch, policy_dqn, target_dqn)
+                self.optimize(mini_batch)
 
                 # Decay epsilon - we want to explore less as we learn more
                 epsilon = max(epsilon - 1/episodes, 0)
@@ -88,13 +96,13 @@ class FrozenLakeDQL(DQL):
 
                 # Copy policy network to target network after a certain number of steps
                 if step_count % self.network_sync_rate == 0:
-                    target_dqn.load_state_dict(policy_dqn.state_dict())
+                    self.target_dqn.load_state_dict(self.policy_dqn.state_dict())
             
         # Close environment
         env.close()
         
         # Save policy
-        torch.save(policy_dqn.state_dict(), 'frozen_lake_dqn.pt')
+        torch.save(self.policy_dqn.state_dict(), 'frozen_lake_dqn.pt')
 
         # Create new graph
         plt.figure(1)
@@ -117,16 +125,16 @@ class FrozenLakeDQL(DQL):
         # Create FrozenLake instance
         is_slippery = self.is_slippery
         env = gym.make('FrozenLake-v1', map_name="4x4", is_slippery=is_slippery, render_mode='human')
-        num_states = env.observation_space.n
+        self.num_states = env.observation_space.n
         num_actions = env.action_space.n
 
         # Load learned policy
-        policy_dqn = DQN(in_states=num_states, h1_nodes=num_states, out_actions=num_actions)
-        policy_dqn.load_state_dict(torch.load('frozen_lake_dqn.pt'))
-        policy_dqn.eval() # set model to evaluation mode since not learning
+        self.policy_dqn = DQN(in_states=self.num_states, h1_nodes=self.num_states, out_actions=num_actions)
+        self.policy_dqn.load_state_dict(torch.load('frozen_lake_dqn.pt'))
+        self.policy_dqn.eval() # set model to evaluation mode since not learning
 
         print('Policy (trained):')
-        self.print_dqn(policy_dqn)
+        self.print_dqn(self.policy_dqn)
 
         for _ in range(episodes):
             state = env.reset()[0] # Initialize to state 0
@@ -136,7 +144,7 @@ class FrozenLakeDQL(DQL):
             while not (terminated or truncated):
                 with torch.no_grad():
                     # Get Q-values for each action and pick the best one - we are completely greedy here since we are testing
-                    q_values = policy_dqn(self.state_to_dqn_input(state, num_states))
+                    q_values = self.policy_dqn(self.state_to_dqn_input(state))
                     action = q_values.argmax().item()
 
                 new_state, _, terminated, truncated, _ = env.step(action)
