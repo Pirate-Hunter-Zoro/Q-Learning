@@ -58,7 +58,7 @@ class MountainCarDQL(DQL):
         # Track number of steps taken. Used for syncing policy => target network.
         step_count=0
         goal_reached=False
-        best_rewards=-200
+        best_rewards=-1000
             
         for i in range(episodes):
             state = env.reset()[0]  # Initialize to state 0
