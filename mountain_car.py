@@ -39,8 +39,9 @@ class MountainCarDQL(DQL):
         memory = ReplayMemory(self.replay_memory_size)
 
         # Create policy and target network - with the number of nodes in the hidden layer adjustable
-        self.policy_dqn = DQN(in_states=num_states, h1_nodes=10, out_actions=num_actions)
-        self.target_dqn = DQN(in_states=num_states, h1_nodes=10, out_actions=num_actions)
+        h1_nodes = 30
+        self.policy_dqn = DQN(in_states=num_states, h1_nodes=h1_nodes, out_actions=num_actions)
+        self.target_dqn = DQN(in_states=num_states, h1_nodes=h1_nodes, out_actions=num_actions)
         self.action_distribution = self.generate_action_distribution()
 
         # Make the target and policy networks the same (copy weights/biases from one network to the other)
