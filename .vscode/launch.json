@@ -31,6 +31,22 @@
       "program": "${workspaceFolder}/run_dql.py",
       "args": ["mountain_car"],
       "console": "integratedTerminal"
+    },
+    {
+      "type": "debugpy",
+      "request": "launch",
+      "name": "Train Car Racing Q-Learning",
+      "program": "${workspaceFolder}/train_dql.py",
+      "args": ["carracing"],
+      "console": "integratedTerminal"
+    },
+    {
+      "type": "debugpy",
+      "request": "launch",
+      "name": "Run Car Racing Q-Learning",
+      "program": "${workspaceFolder}/run_dql.py",
+      "args": ["carracing"],
+      "console": "integratedTerminal"
     }
   ],
 }

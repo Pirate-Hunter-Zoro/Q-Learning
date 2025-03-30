@@ -8,16 +8,27 @@ import torch.nn.functional as F
 
 # Define model - just a feedforward neural network
 class DQN(nn.Module):
-    def __init__(self, in_states, h1_nodes, out_actions):
+    def __init__(self, in_states, h1_nodes, out_actions, convolution=False):
         super().__init__()
-
+        self.convolution = convolution
+        
         # Define network layers
+        if convolution:
+            in_channels = 3 # number of channels in the image (e.g. 3 for RGB)
+            self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=16, kernel_size=5, stride=2)
+            self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=5, stride=2)
+            self.fc0 = nn.Linear(32 * 9 * 9, in_states) # in the case of a convolutional layer, this is the first fully connected layer
         self.fc1 = nn.Linear(in_states, h1_nodes) # first fully connected layer
         self.fc2 = nn.Linear(h1_nodes, h1_nodes) # second fully connected layer
         self.fc3 = nn.Linear(h1_nodes, h1_nodes) # third fully connected layer
         self.out = nn.Linear(h1_nodes, out_actions) # output layer
                 
     def forward(self, x):
+        if self.convolution:
+            x = F.max_pool2d(self.conv1(x))
+            x = F.max_pool2d(self.conv2(x))
+            x = x.view(x.size(0), -1)
+            x = F.relu(self.fc0(x))
         x = F.relu(self.fc1(x)) # apply rectified linear unit (ReLU) activation function
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
