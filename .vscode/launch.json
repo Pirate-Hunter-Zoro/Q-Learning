@@ -19,7 +19,7 @@
     {
       "type": "debugpy",
       "request": "launch",
-      "name": "Train Frozen Lake Q-Learning",
+      "name": "Train Mountain Car Q-Learning",
       "program": "${workspaceFolder}/train_dql.py",
       "args": ["mountain_car"],
       "console": "integratedTerminal"
