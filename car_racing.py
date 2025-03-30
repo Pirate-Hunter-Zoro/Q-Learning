@@ -20,6 +20,7 @@ class CarRacingDQL(DQL):
     def state_to_dqn_input(self, state):
         state = state/255.0 # just normalize the image pixel values
         # Convert to torch tensor if it's not already
+        state = np.expand_dims(state, axis=0)
         if not isinstance(state, torch.Tensor):
             state = torch.FloatTensor(state)
         return state
