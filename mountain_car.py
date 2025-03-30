@@ -8,7 +8,7 @@ from scipy.special import softmax
 
 class MountainCarDQL(DQL):
     # Hyperparameters
-    def __init__(self, learning_rate_a=0.001, learning_rate_b=0.9, replay_memory_size=100000, minibatch_size=32, network_sync_rate=50000, num_divisions=20, render=False):
+    def __init__(self, learning_rate_a=0.01, learning_rate_b=0.9, replay_memory_size=100000, minibatch_size=32, network_sync_rate=50000, num_divisions=20, render=False):
         super(MountainCarDQL, self).__init__(learning_rate_a, learning_rate_b, replay_memory_size, minibatch_size, network_sync_rate)
         self.minibatch_size=minibatch_size
         self.num_divisions=num_divisions
@@ -152,7 +152,7 @@ class MountainCarDQL(DQL):
         num_actions = env.action_space.n
 
         # Load learned policy
-        self.policy_dqn = DQN(in_states=num_states, h1_nodes=10, out_actions=num_actions)
+        self.policy_dqn = DQN(in_states=num_states, h1_nodes=30, out_actions=num_actions)
         self.policy_dqn.load_state_dict(torch.load('mountaincar_dql.pt'))
         self.policy_dqn.eval() # set model to evaluation mode since not learning
         terminated = False
