@@ -109,7 +109,7 @@ class MountainCarDQL(DQL):
                 best_rewards = rewards
                 print(f'Best rewards so far: {best_rewards}')
                 # Save policy
-                torch.save(self.policy_dqn.state_dict(), f"mountaincar_dql_{i}.pt")
+                torch.save(self.policy_dqn.state_dict(), f"mountaincar_dql.pt")
 
             # Check if enough experience has been collected
             if len(memory)>self.minibatch_size and goal_reached:
@@ -153,7 +153,7 @@ class MountainCarDQL(DQL):
 
         # Load learned policy
         self.policy_dqn = DQN(in_states=num_states, h1_nodes=10, out_actions=num_actions)
-        self.policy_dqn.load_state_dict(torch.load('mountain_car_dqn.pt'))
+        self.policy_dqn.load_state_dict(torch.load('mountaincar_dqn.pt'))
         self.policy_dqn.eval() # set model to evaluation mode since not learning
         terminated = False
         for _ in range(episodes):
