@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 class CarRacingDQL(DQL):
     # Hyperparameters
-    def __init__(self, learning_rate_a=0.01, learning_rate_b=0.9, replay_memory_size=100000, minibatch_size=32, network_sync_rate=50000, num_divisions=20, render=False):
+    def __init__(self, learning_rate_a=0.1, learning_rate_b=0.9, replay_memory_size=100000, minibatch_size=32, network_sync_rate=50000, num_divisions=20, render=False):
         super(CarRacingDQL, self).__init__(learning_rate_a, learning_rate_b, replay_memory_size, minibatch_size, network_sync_rate)
         self.minibatch_size=minibatch_size
         self.num_divisions=num_divisions
@@ -18,8 +18,11 @@ class CarRacingDQL(DQL):
         self.h1_nodes = 50 # how many nodes in the first hidden layer of the learning model
 
     def state_to_dqn_input(self, state):
-        # Observation space is: Box(0, 255, (96, 96, 3), uint8) - we care about the third element which is the image
-        return state[2]
+        state = state/255.0 # just normalize the image pixel values
+        # Convert to torch tensor if it's not already
+        if not isinstance(state, torch.Tensor):
+            state = torch.FloatTensor(state)
+        return state
 
     def generate_action_distribution(self):
         # Generate a random action distribution

@@ -14,10 +14,17 @@ class DQN(nn.Module):
         
         # Define network layers
         if convolution:
-            in_channels = 3 # number of channels in the image (e.g. 3 for RGB)
-            self.conv1 = nn.Conv2d(in_channels=in_channels, out_channels=16, kernel_size=5, stride=2)
+            # Calculate the size of the flattened features
+            input_channels = 3 # number of channels in the image (RGB)
+            self.conv1 = nn.Conv2d(in_channels=input_channels, out_channels=16, kernel_size=5, stride=2)
             self.conv2 = nn.Conv2d(in_channels=16, out_channels=32, kernel_size=5, stride=2)
-            self.fc0 = nn.Linear(32 * 9 * 9, in_states) # in the case of a convolutional layer, this is the first fully connected layer
+            self.pool = nn.MaxPool2d(kernel_size=2, stride=2)
+            with torch.no_grad():
+                # Source: https://github.com/KianAnd19/NN-car-racing/blob/main/network.py
+                sample_input = torch.zeros(1, input_channels, 96, 96)
+                x = self.pool(F.relu(self.conv2(F.relu(self.conv1(sample_input)))))
+                self.fc_input_dim = x.numel() // x.size(0)
+                self.fc0 = nn.Linear(self.fc_input_dim, 1000)
         self.fc1 = nn.Linear(in_states, h1_nodes) # first fully connected layer
         self.fc2 = nn.Linear(h1_nodes, h1_nodes) # second fully connected layer
         self.fc3 = nn.Linear(h1_nodes, h1_nodes) # third fully connected layer
@@ -25,8 +32,9 @@ class DQN(nn.Module):
                 
     def forward(self, x):
         if self.convolution:
-            x = F.max_pool2d(self.conv1(x))
-            x = F.max_pool2d(self.conv2(x))
+            x = F.relu(self.conv1(x))
+            x = F.relu(self.conv2(x))
+            x = self.pool(x)
             x = x.view(x.size(0), -1)
             x = F.relu(self.fc0(x))
         x = F.relu(self.fc1(x)) # apply rectified linear unit (ReLU) activation function
