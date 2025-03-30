@@ -153,7 +153,7 @@ class MountainCarDQL(DQL):
 
         # Load learned policy
         self.policy_dqn = DQN(in_states=num_states, h1_nodes=10, out_actions=num_actions)
-        self.policy_dqn.load_state_dict(torch.load('mountaincar_dqn.pt'))
+        self.policy_dqn.load_state_dict(torch.load('mountaincar_dql.pt'))
         self.policy_dqn.eval() # set model to evaluation mode since not learning
         terminated = False
         for _ in range(episodes):
