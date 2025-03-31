@@ -10,7 +10,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 
 class CarRacingDQL(DQL):
     # Hyperparameters
-    def __init__(self, learning_rate_a=0.1, learning_rate_b=0.9, replay_memory_size=10000, minibatch_size=64, network_sync_rate=50000, num_divisions=20, render=False):
+    def __init__(self, learning_rate_a=1e-4, learning_rate_b=0.9, replay_memory_size=10000, minibatch_size=64, network_sync_rate=50000, num_divisions=20, render=False):
         super(CarRacingDQL, self).__init__(learning_rate_a, learning_rate_b, replay_memory_size, minibatch_size, network_sync_rate)
         self.minibatch_size=minibatch_size
         self.num_divisions=num_divisions
