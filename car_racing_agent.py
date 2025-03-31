@@ -20,18 +20,18 @@ class CarRacingAgent(Agent):
         you train multiple policies so that your agent class can
         identify which player is taking an action"""
         # Convert the observation to a tensor and preprocess it
-        state = self.car_racing_helper.state_to_dqn_input(observations).to(device=device)
-        return self.policy_dqn(state).argmax().item()
+        with torch.no_grad():
+            state = self.car_racing_helper.state_to_dqn_input(observations).to(device=device)
+            return self.policy_dqn(state).argmax().item()
 
     def save(self, checkpoint_path):
         """Given a path such as './competition_models/timAgent/'
         we want to create a folder with that name in that path
         and save our model"""
-
-        print("Save not implemeted")
+        torch.save(self.policy_dqn.state_dict(), checkpoint_path + "carracing_dql.pt")
 
     def load(self, checkpoint_path):
         """Given a path such as './competition_models/timAgent/'
         we want to load our model from that folder"""
-
-        print("Load not implemented")
+        self.policy_dqn.load_state_dict(torch.load(checkpoint_path + "carracing_dql.pt"))
+        self.policy_dqn.eval()
