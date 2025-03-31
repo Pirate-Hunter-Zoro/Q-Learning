@@ -24,7 +24,7 @@ class DQN(nn.Module):
                 sample_input = torch.zeros(1, input_channels, 96, 96)
                 x = self.pool(F.relu(self.conv2(F.relu(self.conv1(sample_input)))))
                 self.fc_input_dim = x.numel() // x.size(0)
-                self.fc0 = nn.Linear(self.fc_input_dim, 1000)
+                self.fc0 = nn.Linear(self.fc_input_dim, in_states)
         self.fc1 = nn.Linear(in_states, h1_nodes) # first fully connected layer
         self.fc2 = nn.Linear(h1_nodes, h1_nodes) # second fully connected layer
         self.fc3 = nn.Linear(h1_nodes, h1_nodes) # third fully connected layer
@@ -35,7 +35,7 @@ class DQN(nn.Module):
             x = F.relu(self.conv1(x))
             x = F.relu(self.conv2(x))
             x = self.pool(x)
-            x = x.view(x.size(0), -1)
+            x = x.reshape(x.size(0), -1)
             x = F.relu(self.fc0(x))
         x = F.relu(self.fc1(x)) # apply rectified linear unit (ReLU) activation function
         x = F.relu(self.fc2(x))

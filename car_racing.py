@@ -14,7 +14,7 @@ class CarRacingDQL(DQL):
         self.num_divisions=num_divisions
         # Box2D is not installed, you can install it by run `pip install swig` followed by `pip install "gymnasium[box2d]"`
         self.env = gym.make("CarRacing-v3", render_mode="human" if render else None, continuous=False) # Discrete actions: 0=left,1=idle,2=right,3=gaz,4=brake
-        self.desired_first_layer_size = 32 # We don't have a certain number of states (all the possible frames is nigh limitless), so we need to set the first layer size to a certain number of nodes for the learning model
+        self.desired_first_layer_size = 1000 # We don't have a certain number of states (all the possible frames is nigh limitless), so we need to set the first layer size to a certain number of nodes for the learning model
         self.h1_nodes = 50 # how many nodes in the first hidden layer of the learning model
 
     def state_to_dqn_input(self, state):
@@ -23,6 +23,7 @@ class CarRacingDQL(DQL):
         state = np.expand_dims(state, axis=0)
         if not isinstance(state, torch.Tensor):
             state = torch.FloatTensor(state)
+        state = state.permute(0, 3, 1, 2) # change the order of the dimensions to (batch_size, channels, height, width)
         return state
 
     def generate_action_distribution(self):
