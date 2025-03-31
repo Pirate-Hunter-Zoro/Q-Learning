@@ -15,4 +15,4 @@ if len(sys.argv) > 1:
         mountain_car_dql.train(episodes=10000)
     elif args[0] == 'carracing':
         carracing_dql = CarRacingDQL()
-        carracing_dql.train(episodes=10000)
+        carracing_dql.train(episodes=600)
