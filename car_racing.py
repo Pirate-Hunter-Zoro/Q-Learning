@@ -20,13 +20,19 @@ class CarRacingDQL(DQL):
         self.h1_nodes = 50 # how many nodes in the first hidden layer of the learning model
 
     def state_to_dqn_input(self, state):
-        state = state/255.0 # just normalize the image pixel values
         # Convert to torch tensor if it's not already
-        state = np.expand_dims(state, axis=0)
-        if not isinstance(state, torch.Tensor):
+        if len(state.shape) == 3:
+            # e.g. (96, 96, 3) - no batch dimension
+            assert type(state) == np.ndarray
+            state = np.expand_dims(state, axis=0) # add a batch dimension
+            state = np.permute_dims(state, (0, 3, 2, 1)) # change the order of the dimensions to (batch_size, channels, height, width)
             state = torch.FloatTensor(state)
-        state = state.permute(0, 3, 1, 2) # change the order of the dimensions to (batch_size, channels, height, width)
-        return state.squeeze()
+        elif len(state.shape) == 5:
+            # e.g. (64, 1, 3, 96, 96) - batched from memory
+            assert type(state) == torch.Tensor
+            state = state.permute(1, 0, 2, 3, 4) # change the order of the dimensions to (single_count, batch_size, channels, height, width)
+            state = state.squeeze(0) # remove the single_count dimension
+        return state
 
     def generate_action_distribution(self):
         # Generate a random action distribution
@@ -79,7 +85,7 @@ class CarRacingDQL(DQL):
                         action = env.action_space.sample()
                 else:
                     with torch.no_grad():
-                        q_values = self.policy_dqn(state.unsqueeze(0)).squeeze()
+                        q_values = self.policy_dqn(state)
                         action = q_values.cpu().numpy().argmax()
 
                 
@@ -99,10 +105,10 @@ class CarRacingDQL(DQL):
                     dones = torch.FloatTensor(dones).unsqueeze(1).to(device)
                     
                     # Predict Q-values for the current states
-                    current_q_values = self.policy_dqn(states)
+                    current_q_values = self.policy_dqn(self.state_to_dqn_input(states))
                     
                     # Predict Q-values for the next states
-                    next_q_values = self.target_dqn(next_states)
+                    next_q_values = self.target_dqn(self.state_to_dqn_input(next_states))
                     
                     # Calculate target Q-values
                     target_q_values = rewards + (1 - dones) * self.learning_rate_b * next_q_values
@@ -157,12 +163,12 @@ class CarRacingDQL(DQL):
 
     # Run mountain car environment with trained policy
     def test(self, episodes):
-        env = gym.make("CarRacing-v3", render_mode="human")
+        env = gym.make("CarRacing-v3", render_mode="human", continuous=False) # Discrete actions: 0=left,1=idle,2=right,3=gaz,4=brake
         state = env.reset()[0]
         num_actions = env.action_space.n
 
         # Load learned policy
-        self.policy_dqn = DQN(in_states=self.desired_first_layer_size, h1_nodes=self.h1_nodes, out_actions=num_actions)
+        self.policy_dqn = DQN(in_states=self.desired_first_layer_size, h1_nodes=self.h1_nodes, out_actions=num_actions, convolution=True)
         self.policy_dqn.load_state_dict(torch.load('carracing_dql.pt'))
         self.policy_dqn.eval() # set model to evaluation mode since not learning
         terminated = False
